@@ -12,12 +12,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy Firestore indexes
-        uses: w9jds/firebase-action@v13
-        with:
-          args: deploy --only firestore:indexes
+        if: ${{ secrets.FIREBASE_TOKEN != '' }}
+        run: npx --yes firebase-tools deploy --only firestore:indexes --token "$FIREBASE_TOKEN" --project crmapp-1299dddb
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-          PROJECT_ID: crmapp-1299dddb
 
       - uses: subosito/flutter-action@v2
         with:
