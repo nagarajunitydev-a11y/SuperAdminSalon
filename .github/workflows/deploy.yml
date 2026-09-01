@@ -11,6 +11,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Deploy Firestore indexes
+        uses: w9jds/firebase-action@v13
+        with:
+          args: deploy --only firestore:indexes
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          PROJECT_ID: crmapp-1299dddb
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
