@@ -7,6 +7,22 @@ import 'package:intl/intl.dart';
 /// in this console filters on that field server-side.
 final DateFormat ymd = DateFormat('yyyy-MM-dd');
 
+/// Start of the given `yyyy-MM-dd` key as a local `DateTime` at 00:00. Used as a
+/// Firestore Timestamp lower bound for date fields stored as Timestamps (e.g.
+/// `customers.createdAt`), where lexicographic string tricks are invalid.
+DateTime startOfDayForKey(String key) {
+  final d = DateTime.parse(key);
+  return DateTime(d.year, d.month, d.day);
+}
+
+/// Exclusive upper bound for the given `yyyy-MM-dd` key: the first instant of
+/// the *following* day, so a `<` filter includes the whole final day as a real
+/// Timestamp range. Never a malformed string.
+DateTime exclusiveEndOfDayForKey(String key) {
+  final d = DateTime.parse(key);
+  return DateTime(d.year, d.month, d.day + 1);
+}
+
 enum RangePreset { today, last7, last30, last90, thisMonth, thisYear, custom }
 
 extension RangePresetLabel on RangePreset {

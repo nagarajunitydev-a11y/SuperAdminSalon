@@ -6,7 +6,7 @@ import '../utils/date_range.dart';
 
 /// The window every analytics query in the console is scoped to. Held in one
 /// place so a change re-runs each dependent provider exactly once.
-final dateWindowProvider = valueProvider<DateWindow>(DateWindow.of(RangePreset.last30));
+final dateWindowProvider = valueProvider<DateWindow>(DateWindow.of(RangePreset.last7));
 
 class DateRangeSelector extends ConsumerWidget {
   const DateRangeSelector({super.key});

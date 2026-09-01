@@ -27,13 +27,29 @@ class AuthRepository {
 
   Future<void> signOut() => _auth.signOut();
 
+  /// The UID hardcoded as the platform super admin in Firestore Security Rules.
+  static const _superAdminUid = 'o16zBxrerMgjerjO3lSLinKGJA83';
+
   /// Resolve the role for a signed-in user.
   ///
-  /// A missing profile is NOT treated as an implicit role: absence means "not
-  /// an admin". This is deliberately fail-closed — the console must never open
-  /// because a read returned nothing.
+  /// If the super-admin UID has no Firestore profile yet, this method
+  /// bootstraps one automatically so the first login always succeeds.
+  /// Any other UID without a profile is treated as non-admin (fail-closed).
   Future<AdminUser?> resolveAdmin(User user) async {
-    final snap = await _db.collection(Col.users).doc(user.uid).get();
+    final ref = _db.collection(Col.users).doc(user.uid);
+    var snap = await ref.get();
+
+    // Auto-bootstrap the super-admin profile on first login.
+    if (!snap.exists && user.uid == _superAdminUid) {
+      final profile = <String, dynamic>{
+        'email': user.email ?? '',
+        'displayName': user.displayName ?? user.email ?? 'Super Admin',
+        'role': 'super_admin',
+      };
+      await ref.set(profile, SetOptions(merge: true));
+      snap = await ref.get();
+    }
+
     if (!snap.exists) return null;
     final data = snap.data() ?? const <String, dynamic>{};
     return AdminUser(

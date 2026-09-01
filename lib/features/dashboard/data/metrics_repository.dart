@@ -41,6 +41,18 @@ class MetricsRepository {
           .where(field, isGreaterThanOrEqualTo: w.startKey)
           .where(field, isLessThanOrEqualTo: w.endKey);
 
+  /// Bounds a query over a TIMESTAMP-stored date field (e.g.
+  /// `customers.createdAt`) to the whole window, using genuine start-of-day /
+  /// exclusive next-day Timestamp boundaries. String keys are invalid against a
+  /// Timestamp field, so this never appends a lexicographic pad character.
+  Query<Map<String, dynamic>> _inCreatedAtWindow(
+    Query<Map<String, dynamic>> q,
+    DateWindow w,
+  ) =>
+      q
+          .where('createdAt', isGreaterThanOrEqualTo: startOfDayForKey(w.startKey))
+          .where('createdAt', isLessThan: exclusiveEndOfDayForKey(w.endKey));
+
   Future<int> _count(Query<Map<String, dynamic>> q) async =>
       (await q.count().get()).count ?? 0;
 
@@ -72,7 +84,7 @@ class MetricsRepository {
           ? Future.value(0)
           : _count(_inWindow(salons, w, field: 'createdAt')),
       _count(custs),
-      _count(_inWindow(custs, w, field: 'createdAt')),
+      _count(_inCreatedAtWindow(custs, w)),
       _count(_inWindow(appts, w)),
       _count(appts.where('date', isEqualTo: todayKey)),
       _count(_inWindow(appts, w).where('status', isEqualTo: ApptStatus.completed)),
@@ -113,7 +125,7 @@ class MetricsRepository {
       // Previous-window baselines for growth.
       _count(_inWindow(appts, prev)),
       _sum(_inWindow(appts, prev).where('paid', isEqualTo: true), 'invoiceAmount'),
-      _count(_inWindow(custs, prev, field: 'createdAt')),
+      _count(_inCreatedAtWindow(custs, prev)),
       salonId != null
           ? Future.value(0)
           : _count(_inWindow(salons, prev, field: 'createdAt')),
@@ -146,7 +158,7 @@ class MetricsRepository {
   /// into hundreds of queries. Short ranges stay daily; longer ones roll up.
   List<TimeBucket> _buckets(DateWindow w) {
     final out = <TimeBucket>[];
-    if (w.days <= 31) {
+    if (w.days <= 14) {
       for (final key in w.dayKeys) {
         final d = DateTime.parse(key);
         out.add(TimeBucket(DateFormat('d MMM').format(d), key, key));
@@ -192,9 +204,13 @@ class MetricsRepository {
     return TrendData(revenue, bookings);
   }
 
-  /// New-salon and new-customer registrations over time. `createdAt` is stored
-  /// as a full ISO-8601 string, so the upper bound is padded to catch the whole
-  /// final day.
+  /// New-salon and new-customer registrations over time.
+  ///
+  /// `salons.createdAt` is a full ISO-8601 STRING, so its upper bound is padded
+  /// with a char above every timestamp glyph to catch the whole final day via
+  /// lexical comparison. `customers.createdAt` is stored as a Firestore
+  /// TIMESTAMP, so its range uses real start-of-day / exclusive next-day
+  /// Timestamp bounds — never a padded string.
   Future<TrendData> loadGrowth(DateWindow w) async {
     final buckets = _buckets(w);
 
@@ -209,8 +225,8 @@ class MetricsRepository {
     final customers = await Future.wait(buckets.map((b) async {
       final q = _db
           .collectionGroup(Col.customers)
-          .where('createdAt', isGreaterThanOrEqualTo: b.start)
-          .where('createdAt', isLessThan: '${b.end}');
+          .where('createdAt', isGreaterThanOrEqualTo: startOfDayForKey(b.start))
+          .where('createdAt', isLessThan: exclusiveEndOfDayForKey(b.end));
       return SeriesPoint(b.start, b.label, await _count(q));
     }));
 

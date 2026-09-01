@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSuperAdmin() {
+      return request.auth != null && request.auth.uid == "o16zBxrerMgjerjO3lSLinKGJA83";
+    }
+
+    // Root: salons
+    match /salons/{salonId} {
+      allow read: if isSuperAdmin();
+      allow update: if isSuperAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      allow create, delete: if false;
+    }
+
+    // Per-salon sub-collections
+    match /salons/{salonId}/appointments/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+    match /salons/{salonId}/customers/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+    match /salons/{salonId}/staff/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+    match /salons/{salonId}/services/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+    match /salons/{salonId}/referrals/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+    match /salons/{salonId}/walletTransactions/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+
+    // Collection-group access for sub-collections
+    match /{doc=**}/appointments/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+    match /{doc=**}/customers/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+    match /{doc=**}/staff/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+    match /{doc=**}/services/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+    match /{doc=**}/referrals/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+    match /{doc=**}/walletTransactions/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+
+    // rewardTransactions
+    match /rewardTransactions/{docId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+
+    // users
+    match /users/{userId} {
+      allow read: if isSuperAdmin();
+      allow create: if isSuperAdmin() && request.auth.uid == userId;
+      allow update, delete: if false;
+    }
+
+    // adminAuditLogs
+    match /adminAuditLogs/{docId} {
+      allow read: if isSuperAdmin();
+      allow create: if isSuperAdmin();
+      allow update, delete: if false;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
