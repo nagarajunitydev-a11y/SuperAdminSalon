@@ -34,13 +34,6 @@
       ]
     },
     {
-      "collectionGroup": "customers",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "createdAt", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "salons",
       "queryScope": "COLLECTION",
       "fields": [
