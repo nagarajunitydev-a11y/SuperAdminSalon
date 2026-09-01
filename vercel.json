@@ -1,6 +1,4 @@
 {
-  "buildCommand": "flutter build web --release",
   "outputDirectory": "build/web",
-  "framework": "flutter",
   "regions": ["sin1"]
 }
